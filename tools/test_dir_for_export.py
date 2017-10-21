@@ -28,7 +28,11 @@ def doParsing():
 def main():
     """
     Example of predict_generator usage for images without labels, images are read one by one and you can export results
+    It works only with mobilenet.
     """
+
+    # TODO: Add a generic load model
+
     args = doParsing()
     print(args)
 

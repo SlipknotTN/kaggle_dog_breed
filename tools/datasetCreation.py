@@ -18,7 +18,6 @@ def main():
     """
     Split images train dataset, create directory for each class containing symlinks to original files
     """
-
     args = doParsing()
     print(args)
 

@@ -3,11 +3,8 @@ import argparse
 
 from config.ConfigParams import ConfigParams
 from tfutils.export import exportModelToTF
-from keras.models import Sequential
-from keras.layers import Conv2D, Flatten, Dropout, Activation
-from keras.layers.pooling import AveragePooling2D
-from keras.applications.mobilenet import MobileNet, preprocess_input
-from keras import optimizers
+from model.ModelsFactory import ModelsFactory
+from preprocess.preprocess import getPreprocessFunction
 from keras.callbacks import ModelCheckpoint, EarlyStopping
 from keras.preprocessing.image import ImageDataGenerator
 
@@ -33,9 +30,11 @@ def main():
 
     config = ConfigParams(args.configFile)
 
+    preprocessFunction = getPreprocessFunction(config.preprocessType)
+
     # Image Generator, MobileNet needs [-1.0, 1.0] range (Inception like preprocessing)
-    trainImageGenerator = ImageDataGenerator(preprocessing_function=preprocess_input, horizontal_flip=True)
-    valImageGenerator = ImageDataGenerator(preprocessing_function=preprocess_input)
+    trainImageGenerator = ImageDataGenerator(preprocessing_function=preprocessFunction, horizontal_flip=True)
+    valImageGenerator = ImageDataGenerator(preprocessing_function=preprocessFunction)
 
     trainGenerator = trainImageGenerator.flow_from_directory(
         args.datasetTrainDir,
@@ -53,42 +52,15 @@ def main():
         class_mode='categorical',
         shuffle=False)
 
-    # TODO: Create a model factory to load different architectures
+    # Load model using config file
+    model = ModelsFactory.create(config, trainGenerator.num_class)
 
-    # Load MobileNet Full, with output shape of (None, 7, 7, 1024), final classifier is excluded
-    baseModel = MobileNet(input_shape=(config.inputSize, config.inputSize, 3), alpha=config.mobilenetAlpha,
-                          depth_multiplier=1, dropout=1e-3, include_top=False,
-                          weights='imagenet', input_tensor=None, pooling=None)
-
-    # Final classifier definition
-    fineTunedModel = Sequential()
-
-    fineTunedModel.add(baseModel)
-
-    # Global average output shape (None, 1, 1, 1024).
-    # Global pooling with AveragePooling2D to have a 4D Tensor and apply Conv2D.
-    fineTunedModel.add(AveragePooling2D(pool_size=(baseModel.output_shape[1], baseModel.output_shape[2]),
-                                        strides=(1, 1), padding='valid', name="global_pooling"))
-
-    fineTunedModel.add(Dropout(rate=0.5))
-
-    # Convolution layer that acts like fully connected, with 2 classes, output shape (None, 1, 1, 2)
-    fineTunedModel.add(Conv2D(filters=trainGenerator.num_class, kernel_size=(1, 1), name="fc_conv"))
-
-    # Reshape to (None, 2) to match the one hot encoding target and final softmax
-    fineTunedModel.add(Flatten())
-
-    # Final sofmax for deploy stage
-    fineTunedModel.add(Activation('softmax', name="softmax"))
-
-    # Freeze the base model layers, train only the last convolution
-    for layer in fineTunedModel.layers[0].layers:
-        layer.trainable = False
+    print(model.summary())
 
     # Train as categorical crossentropy (works also with numclasses > 2)
-    fineTunedModel.compile(loss='categorical_crossentropy',
-                           optimizer=optimizers.SGD(lr=config.learningRate, momentum=config.momentum),
-                           metrics=['categorical_accuracy'])
+    model.compile(loss='categorical_crossentropy',
+                  optimizer=config.optimizer,
+                  metrics=['categorical_accuracy'])
 
     # Callbacks for early stopping and best model save
     earlyStoppingCB = EarlyStopping(monitor='val_categorical_accuracy', min_delta=0, patience=config.patience, verbose=1, mode='auto')
@@ -96,7 +68,7 @@ def main():
                                    save_weights_only=False, mode='auto', period=1)
 
     # fine-tune the model
-    fineTunedModel.fit_generator(
+    model.fit_generator(
         trainGenerator,
         steps_per_epoch=trainGenerator.samples//trainGenerator.batch_size,
         epochs=config.epochs,

@@ -1,5 +1,9 @@
 import configparser
 
+from constants.Constants import Constants as const
+from .OptimizerParamsFactory import OptimizerParamsFactory
+from model.OptimizerFactory import OptimizerFactory
+
 
 class ConfigParams(object):
 
@@ -9,18 +13,18 @@ class ConfigParams(object):
         config.read_file(open(file))
 
         # Model
-        self.architecture = config.get("MODEL", "architecture")
-        if self.architecture != "mobilenet":
-            raise Exception("Only mobilenet architecture supported")
-        self.mobilenetAlpha = config.getfloat("MODEL", "mobilenetAlpha", fallback=1.0)
-        self.inputSize = config.getint("MODEL", "inputSize", fallback=224)
+        self.architecture = config.get(const.ConfigSection.model, "architecture")
+        # Valid only for mobilenet
+        if self.architecture == "mobilenet":
+            self.mobilenetAlpha = config.getfloat(const.ConfigSection.model, "mobilenetAlpha", fallback=1.0)
+        self.inputSize = config.getint(const.ConfigSection.model, "inputSize", fallback=224)
+        self.inputChannels = config.getint(const.ConfigSection.model, "inputChannels", fallback=3)
+        self.preprocessType = config.get(const.ConfigSection.model, "preprocessType", fallback="dummy")
 
         # HyperParameters
-        self.epochs = config.getint("HYPERPARAMETERS", "epochs")
-        self.batchSize = config.getint("HYPERPARAMETERS", "batchSize")
-        self.patience = config.getint("HYPERPARAMETERS", "patience")
-        self.learningRate = config.getfloat("HYPERPARAMETERS", "learningRate")
-        self.optimizer = config.get("HYPERPARAMETERS", "optimizer")
-        if self.optimizer != "SGD":
-            raise Exception("Only SGD optimizer supported")
-        self.momentum = config.getfloat("HYPERPARAMETERS", "momentum")
+        self.epochs = config.getint(const.ConfigSection.hyperparameters, "epochs")
+        self.batchSize = config.getint(const.ConfigSection.hyperparameters, "batchSize")
+        self.patience = config.getint(const.ConfigSection.hyperparameters, "patience")
+        optimizerType = config.get(const.ConfigSection.hyperparameters, "optimizer")
+        optimizerParams = OptimizerParamsFactory.createOptimizerParams(optimizerType, config)
+        self.optimizer = OptimizerFactory.create(optimizerParams)
