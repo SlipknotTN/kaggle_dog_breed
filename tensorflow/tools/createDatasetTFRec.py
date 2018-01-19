@@ -14,7 +14,7 @@ def do_parsing():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
         description='Script for tfrec crestion for classification task')
     parser.add_argument('--imagesDir', required=True,
-                        help='Root folder containing images (single directory that has to be split')
+                        help='Single root folder containing subdirectories with classes images')
     parser.add_argument('--configFile', required=True, type=str, help='Config file for dataset creation')
     parser.add_argument('--outputDir', required=True, help='TFRecords destination directory, use a clean directory')
     return parser.parse_args()

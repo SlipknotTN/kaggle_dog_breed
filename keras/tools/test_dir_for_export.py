@@ -16,7 +16,7 @@ def doParsing():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                      description="Keras test script")
     parser.add_argument("--datasetTestDir", required=True, type=str, help="Dataset test directory")
-    parser.add_argument("--labelsFile", required=False, type=str, default="./dataset/labels.csv", help="Labels file")
+    parser.add_argument("--labelsFile", required=False, type=str, default="../dataset/labels.csv", help="Labels file")
     parser.add_argument("--modelPath", required=False, type=str, default="./export/mobilenet_fn.h5",
                         help="Filepath with trained model")
     parser.add_argument("--kaggleExportFile", required=False, type=str, default=None,

@@ -3,6 +3,7 @@ import argparse
 import glob
 import os
 
+from tqdm import tqdm
 import tensorflow as tf
 import numpy as np
 
@@ -11,13 +12,12 @@ from image.ImageUtils import ImageUtils
 from model.TensorflowModel import TensorflowModel
 from kaggle.export import exportResults
 
-classes = ['cat', 'dog']
-
 
 def doParsing():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                      description="Keras test script")
     parser.add_argument("--datasetTestDir", required=True, type=str, help="Dataset test directory")
+    parser.add_argument("--labelsFile", required=False, type=str, default="../dataset/labels.csv", help="Labels file")
     parser.add_argument("--configFile", required=True, type=str, help="Model config file")
     parser.add_argument("--modelPath", required=False, type=str, default="./export/graph.pb",
                         help="Filepath with trained model")
@@ -42,8 +42,6 @@ def main():
 
     print("Loaded model from " + args.modelPath)
 
-    # Dogs and cats test dataset has 12500 samples
-
     results = []
 
     inputPlaceholder = model.getGraph().get_tensor_by_name(config.inputName + ":0")
@@ -54,7 +52,7 @@ def main():
 
         with tf.device("/cpu:0"):
 
-            for file in sorted(glob.glob(args.datasetTestDir + "/*.jpg")):
+            for file in tqdm(sorted(glob.glob(args.datasetTestDir + "/*.jpg"))):
 
                 image = ImageUtils.loadImage(file)
                 # Resize image and preprocess (inception or vgg preprocessing based on config)
@@ -70,15 +68,16 @@ def main():
 
                 # Get and print TOP1 class
                 result = sess.run(outputTensor, feed_dict={inputPlaceholder: processedImage})
-                print(os.path.basename(file) + " -> " + classes[int(np.argmax(result[0]))])
+                print(os.path.basename(file) + " -> " + str(np.argmax(result[0])))
 
                 # Get and save dog probability
-                results.append((os.path.basename(file)[:os.path.basename(file).rfind('.')], result[0][classes.index("dog")]))
+                results.append((os.path.basename(file)[:os.path.basename(file).rfind('.')], result[0]))
 
     print("Test finished")
 
     if args.kaggleExportFile is not None:
-        exportResults(results, args.kaggleExportFile)
+        exportResults(results, args.labelsFile, args.kaggleExportFile)
+        print("Results for kaggle saved in " + args.kaggleExportFile)
 
 
 if __name__ == '__main__':
