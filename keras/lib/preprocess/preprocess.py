@@ -3,7 +3,7 @@ from keras.applications import mobilenet
 
 
 def dummyPreprocessInput(image):
-    image -= 127.0
+    image -= 127.5
     return image
 
 

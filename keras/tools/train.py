@@ -32,8 +32,13 @@ def main():
 
     preprocessFunction = getPreprocessFunction(config.preprocessType)
 
-    # Image Generator, MobileNet needs [-1.0, 1.0] range (Inception like preprocessing)
-    trainImageGenerator = ImageDataGenerator(preprocessing_function=preprocessFunction, horizontal_flip=True)
+    # Image Generator using preprocess function, e.g. MobileNet needs [-1.0, 1.0] range (Inception like preprocessing)
+    trainImageGenerator = ImageDataGenerator(preprocessing_function=preprocessFunction,
+                                             rotation_range=10,
+                                             width_shift_range=0.1,
+                                             height_shift_range=0.1,
+                                             zoom_range=.1,
+                                             horizontal_flip=True)
     valImageGenerator = ImageDataGenerator(preprocessing_function=preprocessFunction)
 
     trainGenerator = trainImageGenerator.flow_from_directory(
