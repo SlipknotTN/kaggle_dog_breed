@@ -9,7 +9,8 @@ def doParsing():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--trainDatasetDir", required=True, type=str, help="Directory with train images (no symlink!)")
     parser.add_argument("--labelsFile", required=True, type=str, help="Labels file")
-    parser.add_argument("--outputDatasetDir", required=True, type=str, help="Output directory with subdirs (no symlink!)")
+    parser.add_argument("--outputDatasetDir", required=True, type=str,
+                        help="Output directory with subdirs (no symlink!)")
     args = parser.parse_args()
     return args
 
