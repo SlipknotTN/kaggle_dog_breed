@@ -15,7 +15,7 @@ from kaggle.export import exportResults
 
 def doParsing():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
-                                     description="Keras test script")
+                                     description="Tensorflow test script")
     parser.add_argument("--datasetTestDir", required=True, type=str, help="Dataset test directory")
     parser.add_argument("--labelsFile", required=False, type=str, default="../dataset/labels.csv", help="Labels file")
     parser.add_argument("--configFile", required=True, type=str, help="Model config file")
