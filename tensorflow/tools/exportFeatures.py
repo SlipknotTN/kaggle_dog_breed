@@ -38,8 +38,6 @@ def main():
 
     print("Loaded model from " + args.modelPath)
 
-    results = []
-
     inputPlaceholder = model.getGraph().get_tensor_by_name(config.inputName + ":0")
     outputTensor = model.getGraph().get_tensor_by_name(config.lastFrozenLayerName + ":0")
 
@@ -54,7 +52,10 @@ def main():
             os.makedirs(outputDir)
 
     # Case with one directory with all files
+    singleDir = False
     if dirs == []:
+        singleDir = True
+        dirs = [args.datasetDir]
         if os.path.exists(args.outputDir) is False:
             os.makedirs(args.outputDir)
 
@@ -67,7 +68,10 @@ def main():
 
                 for file in tqdm(sorted(glob.glob(srcDir + "/*.jpg")), unit="image"):
 
-                    outputDir = os.path.join(args.outputDir, os.path.basename(srcDir))
+                    if singleDir:
+                        outputDir = args.outputDir
+                    else:
+                        outputDir = os.path.join(args.outputDir, os.path.basename(srcDir))
 
                     image = ImageUtils.loadImage(file)
                     # Resize image and preprocess (inception or vgg preprocessing based on config)
@@ -84,7 +88,7 @@ def main():
                     # Get and print TOP1 class
                     result = sess.run(outputTensor, feed_dict={inputPlaceholder: processedImage})
 
-                    # Save npy file (features have 1D shape, eg. mobilenet has 1024 elements)
+                    # Save npy file (features have 1D shape, eg. mobilenet has 1024 elements, nasnet mobile 1056)
                     outputFileName = os.path.basename(file)
                     outputFileName = outputFileName[:outputFileName.rfind(".")]
                     np.save(os.path.join(outputDir, outputFileName + ".npy"), result.reshape(-1))

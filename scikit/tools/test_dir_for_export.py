@@ -8,16 +8,18 @@ from scipy.misc import imread, imresize
 from tqdm import tqdm
 
 from kaggle.export import exportResults
-from keras.models import load_model
-from keras.applications import mobilenet
+from sklearn.externals import joblib
 
+
+# TODO: Read features
 
 def doParsing():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
                                      description="Keras test script")
-    parser.add_argument("--datasetTestDir", required=True, type=str, help="Dataset test directory")
+    parser.add_argument("--datasetTestDirs", required=True, type=str, nargs='*',
+                        help="Dataset test directories with features already exported")
     parser.add_argument("--labelsFile", required=False, type=str, default="../dataset/labels.csv", help="Labels file")
-    parser.add_argument("--modelPath", required=False, type=str, default="./export/mobilenet_fn.h5",
+    parser.add_argument("--modelPath", required=False, type=str, default="./export/logreg.pkl",
                         help="Filepath with trained model")
     parser.add_argument("--kaggleExportFile", required=False, type=str, default=None,
                         help="CSV file in kaggle format for challenge upload")
@@ -27,8 +29,7 @@ def doParsing():
 
 def main():
     """
-    Predictions for images without labels, images are read one by one and you can export results.
-    It works only with mobilenet.
+    Example of predict_generator usage for images without labels, images are read one by one and you can export results
     """
 
     # TODO: Add a generic load model
@@ -36,31 +37,24 @@ def main():
     args = doParsing()
     print(args)
 
-    model = load_model(args.modelPath, custom_objects={
-                       'relu6': mobilenet.relu6,
-                       'DepthwiseConv2D': mobilenet.DepthwiseConv2D})
+    model = joblib.load(args.modelPath)
 
     print("Loaded model from " + args.modelPath)
 
-    print(model.summary())
-
     results = []
 
-    for file in tqdm(sorted(glob.glob(args.datasetTestDir + "/*.jpg"))):
+    for file in tqdm(sorted(glob.glob(args.datasetTestDirs[0] + "/*.npy"))):
 
         # One by one image prediction
+        features = []
+        features.append(np.load(file))
 
-        # Image processing (resize and inception like preprocessing to have [-1.0, 1.0] input range)
-        image = imread(file)
-        image = imresize(image, size=model.input_shape[1:3])
-        image = image.astype(np.float32)
-        processedImage = mobilenet.preprocess_input(image)
+        if len(args.datasetTestDirs) > 1:
+            for datasetTestDir in args.datasetTestDirs[1:]:
+                features.append(np.load(os.path.join(datasetTestDir, os.path.basename(file))))
 
-        # Add 1st dimension for image index in batch
-        processedImage = np.expand_dims(processedImage, axis=0)
-
-        # Get and save dog probability
-        resultProba = model.predict_proba(x=processedImage, batch_size=1, verbose=False)
+        # Get probabilities
+        resultProba = model.predict_proba(np.concatenate(features).reshape(1, -1))
         results.append((os.path.basename(file)[:os.path.basename(file).rfind('.')], resultProba[0]))
 
     print("Test finished")
