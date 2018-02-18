@@ -60,9 +60,11 @@ def main():
             trainY.append(subDirs.index(subDir))
 
     # TODO: Split in train + validation and predict on validation
+    print("Init model")
     model = LogisticRegression(multi_class='multinomial', solver='lbfgs', max_iter=1000, random_state=SEED, verbose=1)
     # Input shape (n_samples, n_features)
     # Target shape (n_samples)
+    print("Fitting model")
     model.fit(np.stack(trainX), np.array(trainY))
 
     print("Train finished")
