@@ -15,7 +15,6 @@ class TensorflowModel(object):
             graph_def.ParseFromString(f.read())
             self.sess = tf.Session()
             tf.import_graph_def(graph_def, name="")
-
             return
 
     def getGraph(self):

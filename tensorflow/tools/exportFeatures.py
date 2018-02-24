@@ -88,6 +88,11 @@ def main():
                     # Get and print TOP1 class
                     result = sess.run(outputTensor, feed_dict={inputPlaceholder: processedImage})
 
+                    # Force global average in case of too big layer size (e.g. SqueezeNet is 14x14x512 at this stage
+                    # because global average is applied to top classifier and not to bottlenecks
+                    if result.shape[1] != 1 or result.shape[2] != 1:
+                        result = np.mean(result, axis=(1,2), keepdims=True)
+
                     # Save npy file (features have 1D shape, eg. mobilenet has 1024 elements, nasnet mobile 1056)
                     outputFileName = os.path.basename(file)
                     outputFileName = outputFileName[:outputFileName.rfind(".")]
